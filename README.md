@@ -1,6 +1,6 @@
-# 🀄 Chinese → English Web Translator (Text & Speech)
+# 🀄 NGEIS — Chinese to English Web Translator (Text & Speech)
 
-A fast, lightweight web application for translating **Chinese text and Chinese speech/audio** into English.
+**NGEIS** is a fast, lightweight web application for translating **Chinese text and Chinese speech/audio** into English.
 
 Built with **Flask**, **faster-whisper** (CTranslate2 INT8), **argostranslate**, and HTML5 Web APIs.
 
