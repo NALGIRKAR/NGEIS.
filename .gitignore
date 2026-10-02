@@ -1,0 +1,30 @@
+# Virtual environments
+venv/
+venv2/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Large binaries & temp tools
+cloudflared.exe
+*.exe
+
+# Temporary files & uploads
+tmp/
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+*.webm
+*.mp4
+
+# OS generated files
+.DS_Store
+Thumbs.db

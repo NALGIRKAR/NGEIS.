@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chinese → English Translator</title>
+  <style>
+    /* ── Reset & Base ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f14;
+      --surface:  #1a1a24;
+      --surface2: #22223a;
+      --accent:   #6c63ff;
+      --accent2:  #ff6584;
+      --text:     #e8e8f0;
+      --muted:    #888898;
+      --border:   #2e2e44;
+      --success:  #34d399;
+      --error:    #f87171;
+      --radius:   14px;
+    }
+
+    html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Hero Header ─────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .badge span { color: var(--accent); font-weight: 600; }
+
+    /* ── Card ────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 780px;
+      padding: 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.95rem;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tab-btn:hover { background: var(--surface2); color: var(--text); }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── Tab Panels ──────────────────────────────────────────── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Text Panel ──────────────────────────────────────────── */
+    label.field-label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    /* ── Audio Panel ─────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      background: var(--surface2);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(108,99,255,0.07);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon { font-size: 2.6rem; margin-bottom: 10px; }
+    .drop-zone p { color: var(--muted); font-size: 0.92rem; }
+    .drop-zone strong { color: var(--text); }
+    .file-formats { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+    #selected-file {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: none;
+    }
+    #selected-file .fname { font-size: 0.9rem; flex: 1; word-break: break-all; }
+    #selected-file button {
+      background: none;
+      border: none;
+      color: var(--error);
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    /* ── Mic Recording ───────────────────────────────────────── */
+    .or-separator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin: 16px 0;
+    }
+    .or-separator::before, .or-separator::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .mic-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .mic-btn:hover { border-color: var(--accent); background: rgba(108,99,255,0.08); }
+    .mic-btn.recording {
+      border-color: var(--error);
+      background: rgba(248,113,113,0.1);
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+      50%       { box-shadow: 0 0 0 8px rgba(248,113,113,0); }
+    }
+
+    /* ── Translate Button ────────────────────────────────────── */
+    .translate-btn {
+      margin-top: 18px;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .translate-btn:hover { opacity: 0.9; }
+    .translate-btn:active { transform: scale(0.98); }
+    .translate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Output ──────────────────────────────────────────────── */
+    .output-section {
+      margin-top: 24px;
+      display: none;
+    }
+    .output-section.visible { display: block; }
+    .output-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 80px;
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text);
+      position: relative;
+    }
+    .output-box.error-box {
+      border-color: var(--error);
+      color: var(--error);
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .copy-btn:hover { color: var(--text); }
+
+    /* ── Spinner ─────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Model Info ──────────────────────────────────────────── */
+    .model-info {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .model-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .model-chip b { color: var(--text); }
+
+    /* ── Scrollbar ───────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🀄 Chinese → English Translator</h1>
+    <p>Translate Chinese text or audio to English in one click</p>
+    <div class="badge" id="status-badge">
+      <span id="badge-audio">🎙️ faster-whisper</span> · audio translation &nbsp;|&nbsp;
+      <span id="badge-text">📝 argostranslate</span> · text translation
+    </div>
+  </header>
+
+  <div class="card">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('text', this)">
+        📝 Text
+      </button>
+      <button class="tab-btn" onclick="switchTab('audio', this)">
+        🎙️ Audio
+      </button>
+    </div>
+
+    <!-- ── Text Panel ── -->
+    <div id="panel-text" class="panel active">
+      <label class="field-label" for="chinese-input">Chinese Text</label>
+      <textarea id="chinese-input" placeholder="在这里输入中文…&#10;(Enter Chinese text here)"></textarea>
+
+      <button class="translate-btn" onclick="translateText()">
+        <span id="text-btn-label">Translate</span>
+      </button>
+    </div>
+
+    <!-- ── Audio Panel ── -->
+    <div id="panel-audio" class="panel">
+      <label class="field-label">Audio File (Chinese speech)</label>
+      <div class="drop-zone" id="drop-zone"
+           ondragover="event.preventDefault(); this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <input type="file" id="audio-file" accept="audio/*,video/*"
+               onchange="fileSelected(this)">
+        <div class="drop-icon">🎵</div>
+        <p><strong>Drop an audio file here</strong> or click to browse</p>
+        <p class="file-formats">MP3 · WAV · M4A · OGG · FLAC · WebM · MP4 · AAC · OPUS</p>
+      </div>
+
+      <div id="selected-file">
+        <span>📄</span>
+        <span class="fname" id="selected-name"></span>
+        <button onclick="clearFile()" title="Remove file">✕</button>
+      </div>
+
+      <!-- Live mic recording -->
+      <div class="or-separator">or record live</div>
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+        🎤 <span id="mic-label">Start Recording</span>
+      </button>
+
+      <button class="translate-btn" onclick="translateAudio()">
+        <span id="audio-btn-label">Translate Audio</span>
+      </button>
+    </div>
+
+    <!-- ── Output ── -->
+    <div class="output-section" id="output-section">
+      <label class="field-label" style="margin-top:0">English Translation</label>
+      <div class="output-box" id="output-box">
+        <button class="copy-btn" id="tts-btn" style="right: 75px;" onclick="speakResult()" title="Listen to speech">🔊 Listen</button>
+        <button class="copy-btn" onclick="copyResult()">Copy</button>
+        <span id="output-text"></span>
+      </div>
+    </div>
+
+    <!-- Model Info -->
+    <div class="model-info">
+      <div class="model-chip" id="chip-audio">🎙️ <b>faster-whisper</b> (CPU INT8)</div>
+      <div class="model-chip" id="chip-text">🌐 <b>argostranslate</b> (offline)</div>
+      <div class="model-chip">🔊 <b>ffmpeg</b> — audio conversion</div>
+    </div>
+  </div>
+
+<script>
+  /* ── Tab switching ── */
+  function switchTab(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+    hideOutput();
+  }
+
+  /* ── Output helpers ── */
+  function showOutput(text, isError = false) {
+    const sec = document.getElementById('output-section');
+    const box = document.getElementById('output-box');
+    const out = document.getElementById('output-text');
+    sec.classList.add('visible');
+    box.classList.toggle('error-box', isError);
+    out.textContent = text;
+  }
+  function hideOutput() {
+    document.getElementById('output-section').classList.remove('visible');
+  }
+  function copyResult() {
+    const t = document.getElementById('output-text').textContent;
+    navigator.clipboard.writeText(t).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+
+  /* ── Speech Synthesis (Text-to-Speech) ── */
+  function speakResult() {
+    const text = document.getElementById('output-text').textContent.trim();
+    if (!text || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    const btn = document.getElementById('tts-btn');
+    btn.textContent = '🔊 Playing…';
+    utterance.onend = () => { btn.textContent = '🔊 Listen'; };
+    utterance.onerror = () => { btn.textContent = '🔊 Listen'; };
+    window.speechSynthesis.speak(utterance);
+  }
+
+  /* ── Fetch active backend status ── */
+  async function checkBackendStatus() {
+    try {
+      const res = await fetch('/status');
+      const data = await res.json();
+      if (data.backend_audio) {
+        document.getElementById('badge-audio').textContent = '🎙️ ' + (data.seamless_m4t ? 'SeamlessM4T (WSL2)' : 'faster-whisper');
+        document.getElementById('chip-audio').innerHTML = '🎙️ <b>' + data.backend_audio + '</b>';
+      }
+      if (data.backend_text) {
+        document.getElementById('badge-text').textContent = '📝 ' + (data.seamless_m4t ? 'SeamlessM4T' : 'argostranslate');
+        document.getElementById('chip-text').innerHTML = '🌐 <b>' + data.backend_text + '</b>';
+      }
+    } catch(e) {}
+  }
+  checkBackendStatus();
+
+  /* ── Spinner helpers ── */
+  function setLoading(labelId, btnFn, loading) {
+    const el = document.getElementById(labelId);
+    el.innerHTML = loading ? '<span class="spinner"></span> Translating…' : btnFn;
+    el.closest('button').disabled = loading;
+  }
+
+  /* ── Text translation ── */
+  async function translateText() {
+    const text = document.getElementById('chinese-input').value.trim();
+    if (!text) { showOutput('Please enter some Chinese text.', true); return; }
+    setLoading('text-btn-label', 'Translate', true);
+    try {
+      const res = await fetch('/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (data.error) showOutput('Error: ' + data.error, true);
+      else showOutput(data.translation);
+    } catch (e) {
+      showOutput('Network error: ' + e.message, true);
+    } finally {
+      setLoading('text-btn-label', 'Translate', false);
+    }
+  }
+
+  /* ── Audio file selection ── */
+  let selectedAudioFile = null;
+
+  function fileSelected(input) {
+    if (input.files && input.files[0]) {
+      selectedAudioFile = input.files[0];
+      document.getElementById('selected-name').textContent = selectedAudioFile.name;
+      document.getElementById('selected-file').style.display = 'flex';
+    }
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    const f = event.dataTransfer.files[0];
+    if (f) { selectedAudioFile = f; document.getElementById('selected-name').textContent = f.name; document.getElementById('selected-file').style.display = 'flex'; }
+  }
+
+  function clearFile() {
+    selectedAudioFile = null;
+    document.getElementById('audio-file').value = '';
+    document.getElementById('selected-file').style.display = 'none';
+  }
+
+  /* ── Live mic recording ── */
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let micStream = null;
+
+  async function toggleMic() {
+    const btn = document.getElementById('mic-btn');
+    const lbl = document.getElementById('mic-label');
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      // Stop recording
+      mediaRecorder.stop();
+      btn.classList.remove('recording');
+      lbl.textContent = 'Start Recording';
+    } else {
+      // Start recording
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(micStream);
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+          selectedAudioFile = new File([blob], 'recording.webm', { type: 'audio/webm' });
+          document.getElementById('selected-name').textContent = 'Live recording (webm)';
+          document.getElementById('selected-file').style.display = 'flex';
+          micStream.getTracks().forEach(t => t.stop());
+        };
+        mediaRecorder.start();
+        btn.classList.add('recording');
+        lbl.textContent = 'Stop Recording';
+      } catch (e) {
+        showOutput('Microphone access denied: ' + e.message, true);
+      }
+    }
+  }
+
+  /* ── Audio translation ── */
+  async function translateAudio() {
+    if (!selectedAudioFile) { showOutput('Please select or record an audio file first.', true); return; }
+    setLoading('audio-btn-label', 'Translate Audio', true);
+    const formData = new FormData();
+    formData.append('audio', selectedAudioFile);
+    try {
+      const res = await fetch('/translate_audio', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) showOutput('Error: ' + data.error, true);
+      else showOutput(data.translation);
+    } catch (e) {
+      showOutput('Network error: ' + e.message, true);
+    } finally {
+      setLoading('audio-btn-label', 'Translate Audio', false);
+    }
+  }
+
+  /* ── Enter to translate text ── */
+  document.getElementById('chinese-input').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') translateText();
+  });
+</script>
+</body>
+</html>

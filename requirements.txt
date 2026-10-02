@@ -1,0 +1,6 @@
+flask==3.0.3
+faster-whisper==1.2.1
+av<14
+argostranslate==1.9.6
+deep-translator==1.11.4
+requests>=2.31.0
