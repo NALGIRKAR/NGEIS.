@@ -80,6 +80,8 @@ def audio_route():
     file.save(temp_path)
     try:
         result = translate_audio(temp_path)
+        if isinstance(result, dict):
+            return jsonify(result)
         return jsonify({"translation": result})
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500

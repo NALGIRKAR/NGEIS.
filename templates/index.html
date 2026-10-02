@@ -385,6 +385,12 @@
 
     <!-- ── Output ── -->
     <div class="output-section" id="output-section">
+      <div id="original-box" style="display:none; margin-bottom: 14px;">
+        <label class="field-label" style="margin-top:0">🎙️ Detected Chinese Speech</label>
+        <div class="output-box" style="min-height: auto; padding: 12px 14px; font-size: 0.95rem; color: #c7d2fe; background: rgba(108,99,255,0.08); border-color: rgba(108,99,255,0.35);">
+          <span id="original-text"></span>
+        </div>
+      </div>
       <label class="field-label" style="margin-top:0">English Translation</label>
       <div class="output-box" id="output-box">
         <button class="copy-btn" id="tts-btn" style="right: 75px;" onclick="speakResult()" title="Listen to speech">🔊 Listen</button>
@@ -412,13 +418,21 @@
   }
 
   /* ── Output helpers ── */
-  function showOutput(text, isError = false) {
+  function showOutput(text, isError = false, original = '') {
     const sec = document.getElementById('output-section');
     const box = document.getElementById('output-box');
     const out = document.getElementById('output-text');
+    const origBox = document.getElementById('original-box');
+    const origText = document.getElementById('original-text');
     sec.classList.add('visible');
     box.classList.toggle('error-box', isError);
     out.textContent = text;
+    if (original && !isError) {
+      origText.textContent = original;
+      origBox.style.display = 'block';
+    } else {
+      origBox.style.display = 'none';
+    }
   }
   function hideOutput() {
     document.getElementById('output-section').classList.remove('visible');
@@ -531,7 +545,15 @@
     } else {
       // Start recording
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            noiseSuppression: true,
+            echoCancellation: true,
+            autoGainControl: true
+          }
+        });
         recordedChunks = [];
         mediaRecorder = new MediaRecorder(micStream);
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
@@ -561,7 +583,7 @@
       const res = await fetch('/translate_audio', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.error) showOutput('Error: ' + data.error, true);
-      else showOutput(data.translation);
+      else showOutput(data.translation, false, data.original || '');
     } catch (e) {
       showOutput('Network error: ' + e.message, true);
     } finally {
