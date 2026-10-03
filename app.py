@@ -93,4 +93,6 @@ def audio_route():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # Hugging Face Spaces uses port 7860, local development defaults to 5000
+    port = int(os.environ.get("PORT", 7860 if os.environ.get("SPACE_ID") else 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

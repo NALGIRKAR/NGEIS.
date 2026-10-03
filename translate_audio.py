@@ -16,9 +16,9 @@ import requests as http_requests
 
 logger = logging.getLogger(__name__)
 
-# ── Inject ffmpeg into PATH ────────────────────────────────────────────────
+# ── Inject ffmpeg into PATH (Windows local fallback) ───────────────────────
 FFMPEG_DIR = r"C:\ffmpeg\ffmpeg-9.0.2-essentials_build\bin"
-if FFMPEG_DIR not in os.environ.get("PATH", ""):
+if os.path.isdir(FFMPEG_DIR) and FFMPEG_DIR not in os.environ.get("PATH", ""):
     os.environ["PATH"] = FFMPEG_DIR + os.pathsep + os.environ.get("PATH", "")
 
 # SeamlessM4T backend URL (running inside WSL2 if enabled)

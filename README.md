@@ -1,3 +1,13 @@
+---
+title: NGEIS
+emoji: 🀄
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🀄 NGEIS — Chinese to English Web Translator (Text & Speech)
 
 **NGEIS** is a fast, lightweight web application for translating **Chinese text and Chinese speech/audio** into English.
