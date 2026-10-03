@@ -95,13 +95,14 @@
       margin-bottom: 24px;
       border-bottom: 1px solid var(--border);
       padding-bottom: 14px;
+      flex-wrap: wrap;
     }
     .tab-btn {
       background: none;
       border: none;
       color: var(--muted);
       font-size: 0.95rem;
-      padding: 10px 20px;
+      padding: 10px 18px;
       border-radius: 10px;
       cursor: pointer;
       display: flex;
@@ -189,6 +190,21 @@
     .mic-status-text {
       font-size: 0.95rem;
       color: var(--muted);
+    }
+
+    /* ── Drop Zone (Upload Audio) ────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 36px 20px;
+      text-align: center;
+      background: var(--surface2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .drop-zone:hover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.06);
     }
 
     /* ── Action Button ───────────────────────────────────────── */
@@ -305,7 +321,10 @@
         📝 Text
       </button>
       <button class="tab-btn" onclick="switchTab('speech', this)">
-        🎙️ Live Speech
+        🎙️ Live Mic
+      </button>
+      <button class="tab-btn" onclick="switchTab('upload', this)">
+        📁 Upload Audio File
       </button>
     </div>
 
@@ -318,7 +337,7 @@
       </button>
     </div>
 
-    <!-- ── Speech Panel ── -->
+    <!-- ── Live Speech Panel ── -->
     <div id="panel-speech" class="panel">
       <div class="mic-container">
         <button class="big-mic-btn" id="mic-toggle-btn" onclick="toggleSpeechRecognition()" title="Click to speak">
@@ -328,6 +347,33 @@
           Click the microphone and speak in Chinese (普通话)
         </div>
       </div>
+    </div>
+
+    <!-- ── Upload Audio File Panel ── -->
+    <div id="panel-upload" class="panel">
+      <label class="field-label">Select Audio File (Chinese Speech)</label>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('audio-file-input').click()">
+        <input type="file" id="audio-file-input" accept="audio/*" style="display:none" onchange="handleFileSelect(event)">
+        <div style="font-size: 2.6rem; margin-bottom: 8px;">🎵</div>
+        <p><strong>Click to choose file</strong> or drag & drop audio here</p>
+        <p style="font-size: 0.78rem; color: var(--muted); margin-top: 6px;">
+          MP3 · WAV · M4A · OGG · FLAC · WebM · AAC
+        </p>
+      </div>
+
+      <!-- File preview & audio player -->
+      <div id="selected-audio-preview" style="display:none; margin-top: 14px; background: var(--surface2); padding: 14px; border-radius: 12px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span id="audio-file-name" style="font-size: 0.92rem; font-weight: 600; color: #a5b4fc; word-break: break-all;"></span>
+          <button onclick="clearAudioFile(event)" style="background: none; border: none; color: var(--error); cursor: pointer; font-size: 1.1rem; padding: 2px 8px;">✕</button>
+        </div>
+        <audio id="audio-player" controls style="width: 100%; height: 38px; border-radius: 6px;"></audio>
+      </div>
+
+      <button class="action-btn" id="btn-upload-translate" onclick="handleAudioFileTranslate()" style="margin-top: 18px;">
+        Transcribe & Translate Audio File
+      </button>
+      <div id="upload-progress-text" style="font-size: 0.88rem; color: #a5b4fc; text-align: center; margin-top: 10px; display: none; font-weight: 500;"></div>
     </div>
 
     <!-- ── Output ── -->
@@ -349,9 +395,10 @@
 
     <!-- ── Chips ── -->
     <div class="footer-info">
-      <div class="chip">⚡ <b>Direct Cloud AI</b></div>
-      <div class="chip">🎙️ <b>Chrome/Edge Web Speech API</b></div>
-      <div class="chip">🌐 <b>Vercel & GitHub Pages Ready</b></div>
+      <div class="chip">⚡ <b>24/7 Cloud AI</b></div>
+      <div class="chip">🎙️ <b>Chrome/Edge Speech API</b></div>
+      <div class="chip">🤖 <b>In-Browser Whisper AI Engine</b></div>
+      <div class="chip">🌐 <b>Vercel Production</b></div>
     </div>
   </div>
 
@@ -440,12 +487,11 @@
   /* ── Live Speech Recognition (Web Speech API) ── */
   let recognition = null;
   let isListening = false;
-
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   function toggleSpeechRecognition() {
     if (!SpeechRecognition) {
-      alert("Your browser does not support speech recognition. Please use Google Chrome, Microsoft Edge, or Safari.");
+      alert("Your browser does not support live speech recognition. Please use Google Chrome, Microsoft Edge, or Safari.");
       return;
     }
 
@@ -495,6 +541,121 @@
     };
 
     recognition.start();
+  }
+
+  /* ── Audio File Upload Handling ── */
+  let selectedFile = null;
+
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) showFilePreview(file);
+  }
+
+  function showFilePreview(file) {
+    selectedFile = file;
+    document.getElementById("audio-file-name").textContent = "🎵 " + file.name + " (" + (file.size / 1024 / 1024).toFixed(2) + " MB)";
+    const player = document.getElementById("audio-player");
+    player.src = URL.createObjectURL(file);
+    document.getElementById("selected-audio-preview").style.display = "block";
+  }
+
+  function clearAudioFile(event) {
+    if (event) event.stopPropagation();
+    selectedFile = null;
+    document.getElementById("audio-file-input").value = "";
+    document.getElementById("selected-audio-preview").style.display = "none";
+    document.getElementById("audio-player").src = "";
+  }
+
+  // Drag and drop events
+  const dropZone = document.getElementById("drop-zone");
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.style.borderColor = "var(--accent)"; });
+  dropZone.addEventListener("dragleave", () => { dropZone.style.borderColor = "var(--border)"; });
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--border)";
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      document.getElementById("audio-file-input").files = e.dataTransfer.files;
+      showFilePreview(e.dataTransfer.files[0]);
+    }
+  });
+
+  /* ── In-Browser Audio File Transcription (Transformers.js Whisper) ── */
+  let transcriberPipeline = null;
+
+  async function handleAudioFileTranslate() {
+    if (!selectedFile) {
+      alert("Please select or drop an audio file first.");
+      return;
+    }
+
+    const btn = document.getElementById("btn-upload-translate");
+    const progressText = document.getElementById("upload-progress-text");
+    btn.disabled = true;
+    progressText.style.display = "block";
+    progressText.textContent = "⏳ Reading and decoding audio file…";
+
+    try {
+      // 1. Decode audio using Web Audio API to 16kHz Float32Array (Whisper input format)
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      
+      let audioData;
+      if (audioBuffer.numberOfChannels === 1) {
+        audioData = audioBuffer.getChannelData(0);
+      } else {
+        const ch0 = audioBuffer.getChannelData(0);
+        const ch1 = audioBuffer.getChannelData(1);
+        audioData = new Float32Array(ch0.length);
+        for (let i = 0; i < ch0.length; i++) {
+          audioData[i] = (ch0[i] + ch1[i]) / 2;
+        }
+      }
+
+      // 2. Load Transformers.js Whisper model (downloaded once, cached in browser IndexedDB)
+      if (!transcriberPipeline) {
+        progressText.textContent = "⏳ Loading in-browser Whisper AI (first time only ~39MB)…";
+        const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
+        env.allowLocalModels = false;
+        transcriberPipeline = await pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
+          progress_callback: (p) => {
+            if (p.status === "progress" && p.file && p.file.endsWith(".onnx")) {
+              progressText.textContent = `⏳ Downloading Whisper model: ${Math.round(p.progress || 0)}%…`;
+            }
+          }
+        });
+      }
+
+      // 3. Transcribe speech
+      progressText.textContent = "🎙️ Transcribing Chinese speech…";
+      const output = await transcriberPipeline(audioData, {
+        language: "chinese",
+        task: "transcribe",
+        chunk_length_s: 30,
+        stride_length_s: 5
+      });
+
+      const chineseTranscript = (output && output.text) ? output.text.trim() : "";
+      if (!chineseTranscript) {
+        showResult("No speech detected in this audio file.", "");
+        progressText.textContent = "Finished.";
+        return;
+      }
+
+      // 4. Translate detected Chinese to English
+      progressText.textContent = "📝 Translating to English…";
+      const englishTranslation = await translateChinese(chineseTranscript);
+      showResult(englishTranslation, chineseTranscript);
+      progressText.textContent = "✅ Done! Translation displayed below.";
+
+    } catch (err) {
+      console.error("Audio file translation error:", err);
+      showResult("Error processing audio: " + err.message, "");
+      progressText.textContent = "Failed.";
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   /* ── Text-to-Speech (English Pronunciation) ── */
