@@ -505,26 +505,44 @@
 
     recognition = new SpeechRecognition();
     recognition.lang = "zh-CN";       // Mandarin Chinese
-    recognition.interimResults = false;
+    recognition.continuous = true;    // Keep listening continuously
+    recognition.interimResults = true; // Show words in real-time as you speak
     recognition.maxAlternatives = 1;
+
+    let liveDebounceTimer = null;
 
     recognition.onstart = () => {
       isListening = true;
       micBtn.classList.add("listening");
-      statusText.innerHTML = "🎙️ <b>Listening…</b> Speak Chinese now.";
+      statusText.innerHTML = "🔴 <b>Listening continuously…</b> Speak in Chinese (Click mic again to stop).";
     };
 
     recognition.onresult = async (event) => {
-      const chineseTranscript = event.results[0][0].transcript;
-      statusText.innerHTML = "Translating speech…";
+      let interimTranscript = '';
+      let currentSentence = '';
 
-      try {
-        const english = await translateChinese(chineseTranscript);
-        showResult(english, chineseTranscript);
-        statusText.innerHTML = "✅ Translated! Click mic to speak again.";
-      } catch (e) {
-        showResult("Error: " + e.message, chineseTranscript);
-        statusText.innerHTML = "Translation failed.";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          currentSentence += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      const spokenText = (currentSentence || interimTranscript).trim();
+      if (spokenText) {
+        statusText.innerHTML = `🎙️ Heard: <span style="color:#a5b4fc; font-weight:600;">"${spokenText}"</span>`;
+
+        // Debounce live translation so words translate smoothly
+        clearTimeout(liveDebounceTimer);
+        liveDebounceTimer = setTimeout(async () => {
+          try {
+            const english = await translateChinese(spokenText);
+            showResult(english, spokenText);
+          } catch (e) {
+            console.error("Live translation error:", e);
+          }
+        }, 400);
       }
     };
 
